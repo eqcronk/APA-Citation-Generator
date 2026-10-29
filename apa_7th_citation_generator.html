@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APA 7th Edition Citation Generator & RIS Converter</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Inter & Merriweather for preview) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Merriweather:ital,wght@0,300;0,400;1,300;1,400&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0f172a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* APA Hanging Indent Formatting */
+        .apa-citation {
+            padding-left: 2rem;
+            text-indent: -2rem;
+            line-height: 2;
+            font-family: 'Merriweather', serif;
+        }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-md">
+                        <i class="fa-solid fa-book-bookmark text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-slate-900 tracking-tight leading-none">CiteMaster APA 7</h1>
+                        <p class="text-xs text-slate-500 font-medium">Citation Generator & RIS Manager</p>
+                    </div>
+                </div>
+
+                <!-- Tab Navigation Buttons -->
+                <nav class="flex space-x-1 sm:space-x-2 bg-slate-100 p-1 rounded-xl">
+                    <button onclick="switchTab('generator')" id="tab-btn-generator" class="tab-btn active px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 flex items-center space-x-2 bg-white text-brand-700 shadow-sm">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                        <span class="hidden sm:inline">New Reference</span>
+                    </button>
+                    <button onclick="switchTab('list')" id="tab-btn-list" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 flex items-center space-x-2 text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-list-check"></i>
+                        <span>Reference List</span>
+                        <span id="ref-count-badge" class="ml-1 px-2 py-0.5 text-xs bg-brand-100 text-brand-700 font-semibold rounded-full">0</span>
+                    </button>
+                    <button onclick="switchTab('import-export')" id="tab-btn-import-export" class="tab-btn px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all duration-150 flex items-center space-x-2 text-slate-600 hover:text-slate-900">
+                        <i class="fa-solid fa-file-import"></i>
+                        <span class="hidden sm:inline">Import / Export</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- TAB 1: CITATION GENERATOR FORM -->
+        <section id="tab-generator" class="tab-content space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                <!-- Left Column: Source Form -->
+                <div class="lg:col-span-7 bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm">
+                    <div class="flex items-center justify-between pb-4 mb-6 border-b border-slate-100">
+                        <div>
+                            <h2 class="text-lg font-bold text-slate-900" id="form-heading">Create APA 7th Citation</h2>
+                            <p class="text-xs text-slate-500">Fill in the fields to construct an accurate citation.</p>
+                        </div>
+                        <button type="button" onclick="resetForm()" class="text-xs text-slate-500 hover:text-brand-600 font-medium flex items-center gap-1 transition">
+                            <i class="fa-solid fa-rotate-right"></i> Reset
+                        </button>
+                    </div>
+
+                    <form id="citation-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                        <input type="hidden" id="editing-id" value="">
+
+                        <!-- Source Type Selector -->
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Source Type</label>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="source-type-selector">
+                                <button type="button" onclick="setSourceType('JOUR')" id="st-JOUR" class="st-btn active border-2 border-brand-500 bg-brand-50 text-brand-700 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-newspaper text-sm"></i> Journal Article
+                                </button>
+                                <button type="button" onclick="setSourceType('BOOK')" id="st-BOOK" class="st-btn border-2 border-slate-200 hover:border-slate-300 text-slate-600 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-book text-sm"></i> Book
+                                </button>
+                                <button type="button" onclick="setSourceType('CHAP')" id="st-CHAP" class="st-btn border-2 border-slate-200 hover:border-slate-300 text-slate-600 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-book-open text-sm"></i> Book Chapter
+                                </button>
+                                <button type="button" onclick="setSourceType('ELEC')" id="st-ELEC" class="st-btn border-2 border-slate-200 hover:border-slate-300 text-slate-600 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-globe text-sm"></i> Website
+                                </button>
+                                <button type="button" onclick="setSourceType('CONF')" id="st-CONF" class="st-btn border-2 border-slate-200 hover:border-slate-300 text-slate-600 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 transition">
+                                    <i class="fa-solid fa-users text-sm"></i> Conference
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Authors Section -->
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Authors / Contributors</label>
+                                <button type="button" onclick="addAuthorField()" class="text-xs text-brand-600 font-semibold hover:text-brand-800 flex items-center gap-1">
+                                    <i class="fa-solid fa-plus-circle"></i> Add Author
+                                </button>
+                            </div>
+                            <div id="authors-container" class="space-y-2">
+                                <!-- Dynamic Author Input Rows -->
+                            </div>
+                        </div>
+
+                        <!-- Core Details -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="sm:col-span-2">
+                                <label for="field-title" class="block text-xs font-medium text-slate-700 mb-1">Title <span class="text-red-500">*</span></label>
+                                <input type="text" id="field-title" required oninput="updateLivePreview()" placeholder="Article or Book Title" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                            </div>
+                            <div>
+                                <label for="field-year" class="block text-xs font-medium text-slate-700 mb-1">Year of Pub.</label>
+                                <input type="text" id="field-year" oninput="updateLivePreview()" placeholder="e.g. 2023" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                            </div>
+                        </div>
+
+                        <!-- Container / Journal Details -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div id="container-name-wrapper">
+                                <label for="field-container" id="lbl-container" class="block text-xs font-medium text-slate-700 mb-1">Journal Name</label>
+                                <input type="text" id="field-container" oninput="updateLivePreview()" placeholder="e.g. Nature" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                            </div>
+                            <div id="publisher-wrapper">
+                                <label for="field-publisher" class="block text-xs font-medium text-slate-700 mb-1">Publisher</label>
+                                <input type="text" id="field-publisher" oninput="updateLivePreview()" placeholder="e.g. Academic Press" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                            </div>
+                        </div>
+
+                        <!-- Book Chapter Editors (Conditional) -->
+                        <div id="editors-wrapper" class="hidden">
+                            <label for="field-editors" class="block text-xs font-medium text-slate-700 mb-1">Book Editors (Format: E. E. Smith, A. B. Jones)</label>
+                            <input type="text" id="field-editors" oninput="updateLivePreview()" placeholder="Editor First & Last Names" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                        </div>
+
+                        <!-- Volume, Issue, Pages -->
+                        <div class="grid grid-cols-3 gap-3" id="vol-issue-pages-group">
+                            <div>
+                                <label for="field-volume" class="block text-xs font-medium text-slate-700 mb-1">Volume</label>
+                                <input type="text" id="field-volume" oninput="updateLivePreview()" placeholder="e.g. 14" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                            </div>
+                            <div>
+                                <label for="field-issue" class="block text-xs font-medium text-slate-700 mb-1">Issue</label>
+                                <input type="text" id="field-issue" oninput="updateLivePreview()" placeholder="e.g. 2" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                            </div>
+                            <div>
+                                <label for="field-pages" class="block text-xs font-medium text-slate-700 mb-1">Pages</label>
+                                <input type="text" id="field-pages" oninput="updateLivePreview()" placeholder="e.g. 101-115" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                            </div>
+                        </div>
+
+                        <!-- DOI and URL -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="field-doi" class="block text-xs font-medium text-slate-700 mb-1">DOI</label>
+                                <input type="text" id="field-doi" oninput="updateLivePreview()" placeholder="10.1038/s41586-020-2649-2" class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                            </div>
+                            <div>
+                                <label for="field-url" class="block text-xs font-medium text-slate-700 mb-1">URL</label>
+                                <input type="url" id="field-url" oninput="updateLivePreview()" placeholder="https://..." class="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition">
+                            </div>
+                        </div>
+
+                        <div class="pt-4 flex items-center justify-end space-x-3 border-t border-slate-100">
+                            <button type="submit" id="btn-save-ref" class="w-full sm:w-auto px-6 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-bookmark"></i>
+                                <span>Save to Reference List</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Right Column: Live Citation Preview -->
+                <div class="lg:col-span-5 space-y-6">
+                    <!-- Live APA Preview Card -->
+                    <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm sticky top-24">
+                        <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+                            <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                                <i class="fa-solid fa-eye text-brand-600"></i> Live APA 7 Preview
+                            </h3>
+                            <div class="flex gap-1">
+                                <button type="button" onclick="copyCurrentPreview('formatted')" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition flex items-center gap-1" title="Copy with HTML/italics formatting">
+                                    <i class="fa-regular fa-copy"></i> Copy HTML
+                                </button>
+                                <button type="button" onclick="copyCurrentPreview('plain')" class="px-2.5 py-1 text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg transition flex items-center gap-1" title="Copy plain text">
+                                    <i class="fa-solid fa-align-left"></i> Text
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-6 rounded-xl border border-slate-200/80 min-h-[140px] flex items-center justify-center">
+                            <div id="live-preview-box" class="apa-citation text-slate-900 text-sm w-full">
+                                <!-- Dynamic APA text injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Rule Helper Box -->
+                        <div class="mt-4 p-3.5 bg-brand-50/60 rounded-xl border border-brand-100 text-xs text-brand-800 space-y-1">
+                            <div class="font-semibold flex items-center gap-1.5 text-brand-900">
+                                <i class="fa-solid fa-circle-info text-brand-600"></i> APA 7th Edition Rules Applied:
+                            </div>
+                            <ul class="list-disc list-inside space-y-0.5 text-slate-600 pl-1">
+                                <li>Titles use sentence case formatting.</li>
+                                <li>Container titles (Journals, Books) are italicized.</li>
+                                <li>DOI URLs format as <code class="text-brand-700">https://doi.org/org...</code>.</li>
+                                <li>Up to 20 authors fully credited before using et al.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 2: REFERENCE LIST MANAGEMENT -->
+        <section id="tab-list" class="tab-content hidden space-y-6">
+            <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+
+                <!-- Header Actions -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-slate-200">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">APA References Page</h2>
+                        <p class="text-xs text-slate-500">Alphabetically ordered bibliography according to APA 7th standards.</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button onclick="copyAllFormatted()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition flex items-center gap-2">
+                            <i class="fa-regular fa-copy"></i> Copy All (Formatted)
+                        </button>
+                        <button onclick="exportListToRIS()" class="px-3.5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center gap-2">
+                            <i class="fa-solid fa-download"></i> Export List (.RIS)
+                        </button>
+                        <button onclick="clearAllReferences()" class="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs rounded-xl transition flex items-center gap-2">
+                            <i class="fa-solid fa-trash-can"></i> Clear List
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reference List Display -->
+                <div id="references-container" class="space-y-6">
+                    <!-- Dynamic List of Citations -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="text-center py-12 px-4 space-y-3">
+                    <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 text-2xl">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-slate-700">No references added yet</h3>
+                    <p class="text-xs text-slate-500 max-w-sm mx-auto">Create new citations using the Generator tab or import existing entries from a .RIS file.</p>
+                    <button onclick="switchTab('generator')" class="mt-2 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-xl transition inline-flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Add Your First Reference
+                    </button>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- TAB 3: IMPORT / EXPORT RIS -->
+        <section id="tab-import-export" class="tab-content hidden space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                <!-- Import Box -->
+                <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-3 bg-brand-50 text-brand-600 rounded-xl">
+                                <i class="fa-solid fa-file-arrow-up text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Import RIS File</h3>
+                                <p class="text-xs text-slate-500">Upload `.ris` exported from EndNote, Zotero, Mendeley, or PubMed.</p>
+                            </div>
+                        </div>
+
+                        <!-- Dropzone -->
+                        <div id="drop-zone" onclick="document.getElementById('ris-file-input').click()" class="border-2 border-dashed border-slate-300 hover:border-brand-500 bg-slate-50 hover:bg-brand-50/30 transition rounded-2xl p-8 text-center cursor-pointer space-y-2">
+                            <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400"></i>
+                            <div class="text-xs font-semibold text-slate-700">
+                                Click to upload or drag & drop `.ris` file
+                            </div>
+                            <p class="text-[10px] text-slate-400">Supports Standard RIS Tag Formats</p>
+                            <input type="file" id="ris-file-input" accept=".ris,.txt" onchange="handleFileSelect(event)" class="hidden">
+                        </div>
+
+                        <div class="space-y-1">
+                            <label for="raw-ris-input" class="block text-xs font-medium text-slate-700">Or Paste Raw RIS Text</label>
+                            <textarea id="raw-ris-input" rows="5" placeholder="TY  - JOUR&#10;AU  - Smith, J.&#10;TI  - Sample Article&#10;JO  - Journal of Testing&#10;PY  - 2023&#10;ER  -" class="w-full p-3 text-xs font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 outline-none transition"></textarea>
+                        </div>
+                    </div>
+
+                    <button onclick="importRawRIS()" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-import"></i> Parse & Import References
+                    </button>
+                </div>
+
+                <!-- Export Box -->
+                <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-4 flex flex-col justify-between">
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+                                <i class="fa-solid fa-file-arrow-down text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900">Export References</h3>
+                                <p class="text-xs text-slate-500">Download your active list into standardized formats.</p>
+                            </div>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                            <div class="flex justify-between items-center text-xs">
+                                <span class="text-slate-600 font-medium">Active References in Memory:</span>
+                                <span id="export-count-badge" class="font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">0 Items</span>
+                            </div>
+                            <p class="text-xs text-slate-500 leading-relaxed">
+                                RIS files can be seamlessly imported into popular reference management software including Zotero, Mendeley, EndNote, and RefWorks.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <button onclick="exportListToRIS()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-download"></i> Download Complete RIS File
+                        </button>
+                        <button onclick="copyRISDataToClipboard()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl transition flex items-center justify-center gap-2">
+                            <i class="fa-regular fa-copy"></i> Copy Raw RIS Text
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            CiteMaster APA 7th Edition Citation Generator &bull; Client-side processing (Data remains in local browser memory)
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // ==========================================
+        // APP STATE MANAGEMENT
+        // ==========================================
+        let references = [];
+        let currentSourceType = 'JOUR'; // Default Journal Article
+
+        // Initial Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadFromLocalStorage();
+            renderAuthorInputs([{ last: '', first: '' }]);
+            updateLivePreview();
+            setupDragAndDrop();
+        });
+
+        // Save state to Local Storage
+        function saveToLocalStorage() {
+            localStorage.setItem('apa_generator_refs', JSON.stringify(references));
+            updateReferenceBadge();
+        }
+
+        // Load state from Local Storage
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('apa_generator_refs');
+            if (saved) {
+                try {
+                    references = JSON.parse(saved);
+                } catch (e) {
+                    references = [];
+                }
+            }
+            renderReferenceList();
+            updateReferenceBadge();
+        }
+
+        function updateReferenceBadge() {
+            document.getElementById('ref-count-badge').textContent = references.length;
+            document.getElementById('export-count-badge').textContent = `${references.length} Items`;
+        }
+
+        // Navigation Tabs Toggle
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(el => {
+                el.classList.remove('active', 'bg-white', 'text-brand-700', 'shadow-sm');
+                el.classList.add('text-slate-600');
+            });
+
+            const targetTab = document.getElementById(`tab-${tabName}`);
+            const targetBtn = document.getElementById(`tab-btn-${tabName}`);
+
+            if (targetTab && targetBtn) {
+                targetTab.classList.remove('hidden');
+                targetBtn.classList.add('active', 'bg-white', 'text-brand-700', 'shadow-sm');
+                targetBtn.classList.remove('text-slate-600');
+            }
+        }
+
+        // ==========================================
+        // FORM & AUTHOR DYNAMICS
+        // ==========================================
+        function setSourceType(type) {
+            currentSourceType = type;
+
+            // Highlight button UI
+            document.querySelectorAll('.st-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-brand-500', 'bg-brand-50', 'text-brand-700');
+                btn.classList.add('border-slate-200', 'text-slate-600');
+            });
+
+            const activeBtn = document.getElementById(`st-${type}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active', 'border-brand-500', 'bg-brand-50', 'text-brand-700');
+                activeBtn.classList.remove('border-slate-200', 'text-slate-600');
+            }
+
+            // Adjust fields dynamic labels
+            const containerLabel = document.getElementById('lbl-container');
+            const publisherWrapper = document.getElementById('publisher-wrapper');
+            const editorsWrapper = document.getElementById('editors-wrapper');
+            const volIssuePagesGroup = document.getElementById('vol-issue-pages-group');
+
+            editorsWrapper.classList.add('hidden');
+            publisherWrapper.classList.remove('hidden');
+            volIssuePagesGroup.classList.remove('hidden');
+
+            switch (type) {
+                case 'JOUR':
+                    containerLabel.textContent = 'Journal Name';
+                    publisherWrapper.classList.add('hidden');
+                    break;
+                case 'BOOK':
+                    containerLabel.textContent = 'Series / Collection (If any)';
+                    volIssuePagesGroup.classList.add('hidden');
+                    break;
+                case 'CHAP':
+                    containerLabel.textContent = 'Book Title';
+                    editorsWrapper.classList.remove('hidden');
+                    break;
+                case 'ELEC':
+                    containerLabel.textContent = 'Website Name';
+                    volIssuePagesGroup.classList.add('hidden');
+                    break;
+                case 'CONF':
+                    containerLabel.textContent = 'Conference Name';
+                    break;
+            }
+
+            updateLivePreview();
+        }
+
+        function renderAuthorInputs(authorsArray) {
+            const container = document.getElementById('authors-container');
+            container.innerHTML = '';
+
+            authorsArray.forEach((author, index) => {
+                const row = document.createElement('div');
+                row.className = "flex items-center space-x-2 author-row";
+                row.innerHTML = `
+                    <input type="text" placeholder="Last Name (e.g. Smith)" value="${escapeHtml(author.last || '')}" oninput="updateLivePreview()" class="author-last w-1/2 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand-500 outline-none">
+                    <input type="text" placeholder="First Name/Initials (e.g. J. M.)" value="${escapeHtml(author.first || '')}" oninput="updateLivePreview()" class="author-first w-1/2 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand-500 outline-none">
+                    ${index > 0 ? `
+                        <button type="button" onclick="removeAuthorField(this)" class="text-slate-400 hover:text-red-500 p-1">
+                            <i class="fa-solid fa-circle-minus text-sm"></i>
+                        </button>
+                    ` : '<span class="w-6"></span>'}
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addAuthorField() {
+            const container = document.getElementById('authors-container');
+            const row = document.createElement('div');
+            row.className = "flex items-center space-x-2 author-row";
+            row.innerHTML = `
+                <input type="text" placeholder="Last Name" oninput="updateLivePreview()" class="author-last w-1/2 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand-500 outline-none">
+                <input type="text" placeholder="First Name/Initials" oninput="updateLivePreview()" class="author-first w-1/2 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand-500 outline-none">
+                <button type="button" onclick="removeAuthorField(this)" class="text-slate-400 hover:text-red-500 p-1">
+                    <i class="fa-solid fa-circle-minus text-sm"></i>
+                </button>
+            `;
+            container.appendChild(row);
+            updateLivePreview();
+        }
+
+        function removeAuthorField(btn) {
+            btn.closest('.author-row').remove();
+            updateLivePreview();
+        }
+
+        function getFormAuthors() {
+            const authors = [];
+            document.querySelectorAll('.author-row').forEach(row => {
+                const last = row.querySelector('.author-last').value.trim();
+                const first = row.querySelector('.author-first').value.trim();
+                if (last || first) {
+                    authors.push({ last, first });
+                }
+            });
+            return authors;
+        }
+
+        function getFormData() {
+            return {
+                id: document.getElementById('editing-id').value || Date.now().toString(),
+                type: currentSourceType,
+                authors: getFormAuthors(),
+                title: document.getElementById('field-title').value.trim(),
+                year: document.getElementById('field-year').value.trim(),
+                container: document.getElementById('field-container').value.trim(),
+                publisher: document.getElementById('field-publisher').value.trim(),
+                editors: document.getElementById('field-editors').value.trim(),
+                volume: document.getElementById('field-volume').value.trim(),
+                issue: document.getElementById('field-issue').value.trim(),
+                pages: document.getElementById('field-pages').value.trim(),
+                doi: document.getElementById('field-doi').value.trim(),
+                url: document.getElementById('field-url').value.trim(),
+            };
+        }
+
+        function resetForm() {
+            document.getElementById('citation-form').reset();
+            document.getElementById('editing-id').value = '';
+            document.getElementById('form-heading').textContent = 'Create APA 7th Citation';
+            document.getElementById('btn-save-ref').querySelector('span').textContent = 'Save to Reference List';
+            renderAuthorInputs([{ last: '', first: '' }]);
+            setSourceType('JOUR');
+            updateLivePreview();
+        }
+
+        // ==========================================
+        // APA 7TH EDITION FORMATTING ENGINE
+        // ==========================================
+
+        /**
+         * Converts strings to APA Sentence Case (capitalizes first word, subtitle first word, proper nouns simplified)
+         */
+        function toSentenceCase(str) {
+            if (!str) return '';
+            // Basic sentence casing: Lowercase everything except first character and characters following colons/dots
+            let result = str.toLowerCase();
+            result = result.replace(/(^\s*|[.:?!]\s+)([a-z])/g, (match, separator, char) => separator + char.toUpperCase());
+            return result;
+        }
+
+        /**
+         * Formats author initials according to APA rules (e.g., "John M." -> "J. M.")
+         */
+        function formatInitials(firstName) {
+            if (!firstName) return '';
+            // If already formatted like initials
+            const parts = firstName.trim().replace(/\./g, ' ').split(/\s+/);
+            return parts.map(p => p[0] ? p[0].toUpperCase() + '.' : '').join(' ');
+        }
+
+        /**
+         * Builds APA 7th Author String for reference list
+         */
+        function formatAuthorsAPA(authors) {
+            if (!authors || authors.length === 0) return '';
+
+            const formattedList = authors.map(a => {
+                const last = a.last || '';
+                const init = formatInitials(a.first || '');
+                if (last && init) return `${last}, ${init}`;
+                if (last) return last;
+                return init;
+            }).filter(a => a.length > 0);
+
+            const n = formattedList.length;
+            if (n === 0) return '';
+            if (n === 1) return formattedList[0];
+            if (n === 2) return `${formattedList[0]}, & ${formattedList[1]}`;
+            if (n <= 20) {
+                return formattedList.slice(0, n - 1).join(', ') + `, & ${formattedList[n - 1]}`;
+            } else {
+                // More than 20 authors: First 19 + ... + Last Author
+                return formattedList.slice(0, 19).join(', ') + `, ... ${formattedList[n - 1]}`;
+            }
+        }
+
+        /**
+         * Formats complete citation into HTML string (with italic elements) or plain text
+         */
+        function buildAPACitation(data, isHtml = true) {
+            const italic = (text) => isHtml ? `<i>${text}</i>` : text;
+            
+            const authorsStr = formatAuthorsAPA(data.authors);
+            const yearStr = data.year ? `(${data.year}).` : '(n.d.).';
+            const rawTitle = data.title ? toSentenceCase(data.title) : 'Untitled';
+            
+            // Format DOI or URL
+            let linkStr = '';
+            if (data.doi) {
+                const cleanDoi = data.doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, '');
+                linkStr = `https://doi.org/${cleanDoi}`;
+            } else if (data.url) {
+                linkStr = data.url;
+            }
+
+            let result = '';
+
+            // Author & Year Prefix
+            if (authorsStr) {
+                result += `${authorsStr} ${yearStr} `;
+            } else {
+                result += `${yearStr} `;
+            }
+
+            // Source-Specific Construction
+            switch (data.type) {
+                case 'JOUR': {
+                    result += `${rawTitle}. `;
+                    if (data.container) {
+                        result += `${italic(data.container)}`;
+                        if (data.volume) {
+                            result += `, ${italic(data.volume)}`;
+                            if (data.issue) {
+                                result += `(${data.issue})`;
+                            }
+                        }
+                        if (data.pages) {
+                            result += `, ${data.pages}`;
+                        }
+                        result += '.';
+                    }
+                    break;
+                }
+                case 'BOOK': {
+                    result += `${italic(rawTitle)}. `;
+                    if (data.publisher) {
+                        result += `${data.publisher}.`;
+                    }
+                    break;
+                }
+                case 'CHAP': {
+                    result += `${rawTitle}. `;
+                    if (data.editors || data.container) {
+                        result += `In `;
+                        if (data.editors) {
+                            result += `${data.editors} (Ed.), `;
+                        }
+                        if (data.container) {
+                            result += `${italic(toSentenceCase(data.container))}`;
+                        }
+                        if (data.pages) {
+                            result += ` (pp. ${data.pages})`;
+                        }
+                        result += `. `;
+                    }
+                    if (data.publisher) {
+                        result += `${data.publisher}.`;
+                    }
+                    break;
+                }
+                case 'ELEC': {
+                    result += `${italic(rawTitle)}. `;
+                    if (data.container) {
+                        result += `${data.container}. `;
+                    }
+                    break;
+                }
+                case 'CONF': {
+                    result += `${italic(rawTitle)} [Conference presentation]. `;
+                    if (data.container) {
+                        result += `${data.container}. `;
+                    }
+                    break;
+                }
+            }
+
+            if (linkStr) {
+                result += ` ${linkStr}`;
+            }
+
+            return result.trim();
+        }
+
+        function updateLivePreview() {
+            const data = getFormData();
+            const previewBox = document.getElementById('live-preview-box');
+            
+            if (!data.title && data.authors.length === 0) {
+                previewBox.innerHTML = `<span class="text-slate-400 italic font-sans">Citation preview will appear here as you fill out the form fields...</span>`;
+                return;
+            }
+
+            previewBox.innerHTML = buildAPACitation(data, true);
+        }
+
+        // ==========================================
+        // REFERENCE LIST MANAGEMENT
+        // ==========================================
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            const data = getFormData();
+
+            if (!data.title) {
+                showToast('Please enter a title for the reference.', 'error');
+                return;
+            }
+
+            const existingIndex = references.findIndex(r => r.id === data.id);
+            if (existingIndex >= 0) {
+                references[existingIndex] = data;
+                showToast('Reference updated successfully!');
+            } else {
+                references.push(data);
+                showToast('Reference saved to list!');
+            }
+
+            sortReferencesAPA();
+            saveToLocalStorage();
+            renderReferenceList();
+            resetForm();
+            switchTab('list');
+        }
+
+        // APA Sorting Rule: Alphabetical by first author's last name or Title if no author
+        function sortReferencesAPA() {
+            references.sort((a, b) => {
+                const getSortKey = (ref) => {
+                    if (ref.authors && ref.authors.length > 0 && ref.authors[0].last) {
+                        return ref.authors[0].last.toLowerCase();
+                    }
+                    return (ref.title || '').toLowerCase();
+                };
+                return getSortKey(a).localeCompare(getSortKey(b));
+            });
+        }
+
+        function renderReferenceList() {
+            const container = document.getElementById('references-container');
+            const emptyState = document.getElementById('empty-state');
+
+            if (references.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            container.innerHTML = '';
+
+            references.forEach((ref, index) => {
+                const htmlCitation = buildAPACitation(ref, true);
+                const plainCitation = buildAPACitation(ref, false);
+
+                const card = document.createElement('div');
+                card.className = "p-5 bg-slate-50 border border-slate-200 rounded-xl relative group transition hover:border-brand-300";
+                card.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
+                        <div class="apa-citation text-slate-900 text-sm flex-1 pr-4">
+                            ${htmlCitation}
+                        </div>
+                        <div class="flex items-center gap-1.5 self-end sm:self-start bg-white p-1 rounded-lg border border-slate-200 shadow-sm opacity-90 group-hover:opacity-100">
+                            <button onclick="copySingleRef('${ref.id}')" title="Copy Text" class="p-1.5 text-slate-500 hover:text-brand-600 rounded">
+                                <i class="fa-regular fa-copy text-xs"></i>
+                            </button>
+                            <button onclick="editReference('${ref.id}')" title="Edit" class="p-1.5 text-slate-500 hover:text-brand-600 rounded">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="deleteReference('${ref.id}')" title="Delete" class="p-1.5 text-slate-500 hover:text-red-600 rounded">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 bg-slate-200 text-slate-600 rounded">
+                            ${ref.type}
+                        </span>
+                        ${ref.doi ? `<span class="text-[10px] text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-100">DOI</span>` : ''}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function editReference(id) {
+            const ref = references.find(r => r.id === id);
+            if (!ref) return;
+
+            document.getElementById('editing-id').value = ref.id;
+            document.getElementById('field-title').value = ref.title || '';
+            document.getElementById('field-year').value = ref.year || '';
+            document.getElementById('field-container').value = ref.container || '';
+            document.getElementById('field-publisher').value = ref.publisher || '';
+            document.getElementById('field-editors').value = ref.editors || '';
+            document.getElementById('field-volume').value = ref.volume || '';
+            document.getElementById('field-issue').value = ref.issue || '';
+            document.getElementById('field-pages').value = ref.pages || '';
+            document.getElementById('field-doi').value = ref.doi || '';
+            document.getElementById('field-url').value = ref.url || '';
+
+            renderAuthorInputs(ref.authors && ref.authors.length > 0 ? ref.authors : [{ last: '', first: '' }]);
+            setSourceType(ref.type || 'JOUR');
+
+            document.getElementById('form-heading').textContent = 'Edit Reference';
+            document.getElementById('btn-save-ref').querySelector('span').textContent = 'Update Reference';
+
+            switchTab('generator');
+        }
+
+        function deleteReference(id) {
+            references = references.filter(r => r.id !== id);
+            saveToLocalStorage();
+            renderReferenceList();
+            showToast('Reference deleted.');
+        }
+
+        function clearAllReferences() {
+            if (references.length === 0) return;
+            if (confirm('Are you sure you want to delete all references?')) {
+                references = [];
+                saveToLocalStorage();
+                renderReferenceList();
+                showToast('All references cleared.');
+            }
+        }
+
+        // Copy functionality with Clipboard HTML preservation
+        function copySingleRef(id) {
+            const ref = references.find(r => r.id === id);
+            if (!ref) return;
+            const plain = buildAPACitation(ref, false);
+            const html = buildAPACitation(ref, true);
+            copyFormattedToClipboard(plain, html);
+        }
+
+        function copyCurrentPreview(mode) {
+            const data = getFormData();
+            if (mode === 'formatted') {
+                copyFormattedToClipboard(buildAPACitation(data, false), buildAPACitation(data, true));
+            } else {
+                copyFormattedToClipboard(buildAPACitation(data, false), buildAPACitation(data, false));
+            }
+        }
+
+        function copyAllFormatted() {
+            if (references.length === 0) {
+                showToast('No references to copy.', 'error');
+                return;
+            }
+            const plainList = references.map(r => buildAPACitation(r, false)).join('\n\n');
+            const htmlList = references.map(r => `<p style="padding-left:2em;text-indent:-2em;margin-bottom:1em;">${buildAPACitation(r, true)}</p>`).join('');
+            copyFormattedToClipboard(plainList, htmlList);
+        }
+
+        function copyFormattedToClipboard(plainText, htmlText) {
+            const listener = (e) => {
+                e.clipboardData.setData('text/html', htmlText);
+                e.clipboardData.setData('text/plain', plainText);
+                e.preventDefault();
+            };
+            document.addEventListener('copy', listener);
+            document.execCommand('copy');
+            document.removeEventListener('copy', listener);
+            showToast('Copied to clipboard!');
+        }
+
+        // ==========================================
+        // RIS IMPORT ENGINE
+        // ==========================================
+        function setupDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('border-brand-500', 'bg-brand-50/50');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('border-brand-500', 'bg-brand-50/50');
+                });
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files.length > 0) {
+                    readRISFile(files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                readRISFile(file);
+            }
+        }
+
+        function readRISFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                parseAndAddRIS(content);
+            };
+            reader.readAsText(file);
+        }
+
+        function importRawRIS() {
+            const rawText = document.getElementById('raw-ris-input').value.trim();
+            if (!rawText) {
+                showToast('Please paste or upload RIS data first.', 'error');
+                return;
+            }
+            parseAndAddRIS(rawText);
+            document.getElementById('raw-ris-input').value = '';
+        }
+
+        /**
+         * Parses standard RIS string content into Structured Reference Objects
+         */
+        function parseAndAddRIS(risText) {
+            const entries = risText.split(/ER\s*-\s*\n?/g).filter(block => block.trim().length > 0);
+            let importedCount = 0;
+
+            entries.forEach(block => {
+                const lines = block.split(/\r?\n/);
+                const ref = {
+                    id: Date.now().toString() + Math.random().toString(36).substr(2, 4),
+                    type: 'JOUR',
+                    authors: [],
+                    title: '',
+                    year: '',
+                    container: '',
+                    publisher: '',
+                    editors: '',
+                    volume: '',
+                    issue: '',
+                    pages: '',
+                    doi: '',
+                    url: ''
+                };
+
+                lines.forEach(line => {
+                    // Match line RIS tag format: TY  - JOUR
+                    const match = line.match(/^([A-Z0-9]{2})\s*-\s*(.*)$/);
+                    if (!match) return;
+
+                    const tag = match[1].trim();
+                    const value = match[2].trim();
+
+                    switch (tag) {
+                        case 'TY':
+                            if (value === 'BOOK') ref.type = 'BOOK';
+                            else if (value === 'CHAP') ref.type = 'CHAP';
+                            else if (value === 'ELEC' || value === 'GEN') ref.type = 'ELEC';
+                            else if (value === 'CONF') ref.type = 'CONF';
+                            else ref.type = 'JOUR';
+                            break;
+                        case 'AU':
+                        case 'A1': {
+                            // Convert Last, First or Last First
+                            const authorParts = value.split(',');
+                            if (authorParts.length >= 2) {
+                                ref.authors.push({ last: authorParts[0].trim(), first: authorParts[1].trim() });
+                            } else {
+                                ref.authors.push({ last: value, first: '' });
+                            }
+                            break;
+                        }
+                        case 'TI':
+                        case 'T1':
+                            ref.title = value;
+                            break;
+                        case 'JO':
+                        case 'JF':
+                        case 'T2':
+                            ref.container = value;
+                            break;
+                        case 'PY':
+                        case 'Y1':
+                            const yearMatch = value.match(/\d{4}/);
+                            if (yearMatch) ref.year = yearMatch[0];
+                            break;
+                        case 'VL':
+                            ref.volume = value;
+                            break;
+                        case 'IS':
+                            ref.issue = value;
+                            break;
+                        case 'SP':
+                            ref.pages = value;
+                            break;
+                        case 'EP':
+                            if (ref.pages && !ref.pages.includes('-')) {
+                                ref.pages += `-${value}`;
+                            }
+                            break;
+                        case 'PB':
+                            ref.publisher = value;
+                            break;
+                        case 'DO':
+                            ref.doi = value;
+                            break;
+                        case 'UR':
+                            ref.url = value;
+                            break;
+                    }
+                });
+
+                if (ref.title || ref.authors.length > 0) {
+                    references.push(ref);
+                    importedCount++;
+                }
+            });
+
+            if (importedCount > 0) {
+                sortReferencesAPA();
+                saveToLocalStorage();
+                renderReferenceList();
+                showToast(`Successfully imported ${importedCount} reference(s)!`);
+                switchTab('list');
+            } else {
+                showToast('Could not parse any valid RIS entries.', 'error');
+            }
+        }
+
+        // ==========================================
+        // RIS EXPORT ENGINE
+        // ==========================================
+        function generateRISString() {
+            if (references.length === 0) return '';
+
+            return references.map(ref => {
+                let ris = [];
+                ris.push(`TY  - ${ref.type || 'JOUR'}`);
+
+                (ref.authors || []).forEach(a => {
+                    const name = a.first ? `${a.last}, ${a.first}` : a.last;
+                    if (name) ris.push(`AU  - ${name}`);
+                });
+
+                if (ref.title) ris.push(`TI  - ${ref.title}`);
+                if (ref.container) ris.push(`JO  - ${ref.container}`);
+                if (ref.publisher) ris.push(`PB  - ${ref.publisher}`);
+                if (ref.year) ris.push(`PY  - ${ref.year}`);
+                if (ref.volume) ris.push(`VL  - ${ref.volume}`);
+                if (ref.issue) ris.push(`IS  - ${ref.issue}`);
+                
+                if (ref.pages) {
+                    const pageParts = ref.pages.split('-');
+                    ris.push(`SP  - ${pageParts[0].trim()}`);
+                    if (pageParts[1]) ris.push(`EP  - ${pageParts[1].trim()}`);
+                }
+
+                if (ref.doi) ris.push(`DO  - ${ref.doi}`);
+                if (ref.url) ris.push(`UR  - ${ref.url}`);
+
+                ris.push('ER  - ');
+                return ris.join('\n');
+            }).join('\n\n');
+        }
+
+        function exportListToRIS() {
+            if (references.length === 0) {
+                showToast('No references available to export.', 'error');
+                return;
+            }
+
+            const risContent = generateRISString();
+            const blob = new Blob([risContent], { type: 'text/plain;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `APA_References_${new Date().toISOString().slice(0,10)}.ris`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Downloaded .RIS file!');
+        }
+
+        function copyRISDataToClipboard() {
+            if (references.length === 0) {
+                showToast('No references available to copy.', 'error');
+                return;
+            }
+            const risContent = generateRISString();
+            copyFormattedToClipboard(risContent, risContent);
+        }
+
+        // Utility: Toast notifications
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `px-4 py-3 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 pointer-events-auto transform transition-all duration-300 translate-y-2 opacity-0 ${
+                type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-900 text-white'
+            }`;
+            toast.innerHTML = `
+                <i class="fa-solid ${type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}"></i>
+                <span>${escapeHtml(message)}</span>
+            `;
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, (m) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[m]));
+        }
+    </script>
+</body>
+</html>
