@@ -4,7 +4,7 @@ A web-based tool designed to create, manage, and format academic citations accor
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
 * **APA 7th Edition Formatting:** Automatically formats references for common source types:
   * Journal Articles
@@ -20,7 +20,7 @@ A web-based tool designed to create, manage, and format academic citations accor
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -39,7 +39,7 @@ No installation or backend server is required. The application runs entirely in 
 
 ---
 
-## 📑 Supported Source Types & APA Examples
+## Supported Source Types & APA Examples
 
 | Source Type | APA Reference Format Example |
 | :--- | :--- |
@@ -50,7 +50,7 @@ No installation or backend server is required. The application runs entirely in 
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 * **Frontend:** HTML5, Modern JavaScript (ES6+)
 * **Styling:** Tailwind CSS (via CDN)
@@ -58,6 +58,6 @@ No installation or backend server is required. The application runs entirely in 
 
 ---
 
-## 📄 License
+## License
 
 This project is open-source and available for personal, academic, and commercial use.
